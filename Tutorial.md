@@ -187,7 +187,7 @@ In Visual Studio Code, create a new file to add the sign-in/sign-out button and 
          </ul>
     ```
     
-4. Inject the name of _LoginPartial.cshtml file in _Layout.cshtml file to display sign-in/sign-out link on home page of the app by adding `<partial name="_LoginPartial" />` under `<div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">` as shown below:
+4. Inject the name of **_LoginPartial.cshtml** file in the **_Layout.cshtml** file to display sign-in/sign-out link on home page of the app by adding `<partial name="_LoginPartial" />` under `<div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">` as shown below:
 
     ```html
         <div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">
@@ -231,7 +231,7 @@ To register your application, follow these steps:
 
 1. Go to the new  [Azure portal - App registrations](https://portal.azure.com/#blade/Microsoft_AAD_B2CAdmin/TenantManagementMenuBlade/registeredApps) pane.
 1. Enter a name for your application.
-1. Type https://localhost:5001/signin-oidc as the Redirect URI.
+1. Type **https://<span></span>localhost:5001/signin-oidc** as the Redirect URI.
 1. Leave other options as default and click on Register button.
 
 To add application registration information to your project, follow these steps:
@@ -261,7 +261,7 @@ To add application registration information to your project, follow these steps:
     ```
 
 |Property |Value |
-|---|---|---|
+|---|---|
 |**Instance** |Your b2c instance name | 
 |**ClientId** |Application ID of the application registered via [Azure portal - App registrations](https://portal.azure.com/#blade/Microsoft_AAD_B2CAdmin/TenantManagementMenuBlade/registeredApps) |
 |**Domain** |Domain name of your B2C tenant |
