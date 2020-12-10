@@ -285,4 +285,4 @@ To test your application in Visual Studio Code, press Ctrl+F5 (without debugging
 Learn about calling protected web APIs from web apps with the Microsoft identity platform:
 
 > [!div class="nextstepaction"]
-> [Web apps calling web APIs](scenario-web-app-sign-user-overview.md)
+> Web apps calling web APIs
