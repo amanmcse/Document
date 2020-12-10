@@ -15,7 +15,7 @@ ms.author: amansi
 ms.custom: "devx-track-csharp, aaddev, identityplatformtop40"
 ---
 
-# Tutorial: Add sign-in to Microsoft to an ASP.NET web app
+# Tutorial: Add Azure AD B2C authentication to an ASP.NET Core web app
 
 In this tutorial, you build an ASP.NET MVC Core web app that signs in users by using the Microsoft identity platform.
 
@@ -69,11 +69,10 @@ dotnet new webapp
 ## Add authentication components
 
 In order to add *Microsoft Identity Web ASP.NET Core middleware NuGet packages* run the following commands:
-
-    ```dotnetcli
+```dotnetcli
     dotnet add package Microsoft.Identity.Web
     dotnet add package Microsoft.Identity.Web.UI
-    ```
+```
 
 ### About these libraries
 These libraries enable single sign-on (SSO) by using OpenID Connect through cookie-based authentication. After authentication is completed and the token representing the user is sent to your application, OWIN middleware creates a session cookie. The browser then uses this cookie on subsequent requests so that the user doesn't have to retype the password, and no additional verification is needed.
@@ -120,7 +119,7 @@ The following steps are used to create an Microsoft Identity Web ASP.NET Core mi
         }
     ```
 
-3. Update the Configure method in Startup.cs file with app.UseCookiePolicy(); and app.UseAuthentication(); as mentioned below:
+3. Update the Configure method in Startup.cs file with app.UseCookiePolicy(), app.UseAuthentication() and update app.UseEndpoints() as mentioned below:
 
     ```csharp
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -143,6 +142,9 @@ The following steps are used to create an Microsoft Identity Web ASP.NET Core mi
             app.UseAuthorization();
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapControllerRoute(
+                    name: "default",
+                    pattern: "{controller=Home}/{action=Index}/{id?}");
                 endpoints.MapRazorPages();
             });
         }
@@ -184,215 +186,99 @@ In Visual Studio Code, create a new file to add the sign-in/sign-out button and 
             }
          </ul>
     ```
+    
+4. Inject the name of _LoginPartial.cshtml file in _Layout.cshtml file to display sign-in/sign-out link on home page of the app by adding `<partial name="_LoginPartial" />` under `<div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">` as shown below:
 
-### More information
-This page adds a sign-in button in SVG format with a black background:<br/>![Sign in with Microsoft button](media/active-directory-develop-guidedsetup-aspnetwebapp-use/aspnetsigninbuttonsample.png)<br/> For more sign-in buttons, go to the [Branding guidelines](./howto-add-branding-in-azure-ad-apps.md "Branding guidelines").
+    ```html
+        <div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">
+            <partial name="_LoginPartial" />
+            <ul class="navbar-nav flex-grow-1">
+                <li class="nav-item">
+                    <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
+                </li>
+            </ul>
+        </div>
+    ```
+    
+ 5. Optionally, if you are using Profile Edit and Password Reset user flows, you can add list items under `<ul class="navbar-nav flex-grow-1">` to add links for these user flows as well.
+ 
+     ```html
+        <div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">
+            <partial name="_LoginPartial" />
+            <ul class="navbar-nav flex-grow-1">
+                <li class="nav-item">
+                    <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-dark" asp-area="MicrosoftIdentity" asp-controller="Account" asp-action="EditProfile">Edit Profile</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-dark" asp-area="MicrosoftIdentity" asp-controller="Account" asp-action="ResetPassword">Reset Password</a>
+                </li>
+            </ul>
+        </div>
+    ```
+    
+## Register your application and add application information to the project:
 
-## Add a controller to display user's claims
-This controller demonstrates the uses of the `[Authorize]` attribute to protect a controller. This attribute restricts access to the controller by allowing only authenticated users. The following code makes use of the attribute to display user claims that were retrieved as part of sign-in:
+To register your application, follow these steps:
 
-1.	Right-click the **Controllers** folder, and then select **Add** > **Controller**.
-2.	Select **MVC {version} Controller – Empty**.
-3.	Select **Add**.
-4.	Name it **ClaimsController**.
-5.	Replace the code of your controller class with the following code. This adds the `[Authorize]` attribute to the class:
+1. Go to the new  [Azure portal - App registrations](https://portal.azure.com/#blade/Microsoft_AAD_B2CAdmin/TenantManagementMenuBlade/registeredApps) pane.
+1. Enter a name for your application.
+1. Type https://localhost:5001/signin-oidc as the Redirect URI.
+1. Leave other options as default and click on Register button.
 
-    ```csharp
-    [Authorize]
-    public class ClaimsController : Controller
-    {
-        /// <summary>
-        /// Add user's claims to viewbag
-        /// </summary>
-        /// <returns></returns>
-        public ActionResult Index()
-        {
-            var userClaims = User.Identity as System.Security.Claims.ClaimsIdentity;
+To add application registration information to your project, follow these steps:
 
-            //You get the user's first and last name below:
-            ViewBag.Name = userClaims?.FindFirst("name")?.Value;
-
-            // The 'preferred_username' claim can be used for showing the username
-            ViewBag.Username = userClaims?.FindFirst("preferred_username")?.Value;
-
-            // The subject/ NameIdentifier claim can be used to uniquely identify the user across the web
-            ViewBag.Subject = userClaims?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-            // TenantId is the unique Tenant Id - which represents an organization in Azure AD
-            ViewBag.TenantId = userClaims?.FindFirst("http://schemas.microsoft.com/identity/claims/tenantid")?.Value;
-
-            return View();
+1. In Visual Studio Code, open the appsettings.json file.
+1. Add information about your Azure AD B2C instance, domain, application, user flows / custom policies etc. as shown below:
+     ```json
+     {
+      "AzureAdB2C": {
+        "Instance": "https://contoso.b2clogin.com",
+        "ClientId": "2c9296bb-xxxx-xxxx-xxxx-30d38790dea1",
+        "Domain": "contoso.onmicrosoft.com",
+        "SignedOutCallbackPath": "/signout/b2c_1A_signup_signin",
+        "SignUpSignInPolicyId": "b2c_1_signup_signin",
+        "ResetPasswordPolicyId": "b2c_1_PasswordReset",
+        "EditProfilePolicyId": "b2c_1_ProfileEdit"
+      },
+      "Logging": {
+        "LogLevel": {
+          "Default": "Information",
+          "Microsoft": "Warning",
+          "Microsoft.Hosting.Lifetime": "Information"
         }
+      },
+      "AllowedHosts": "*"
     }
     ```
 
-### More information
-Because of the use of the `[Authorize]` attribute, all methods of this controller can be executed only if the user is authenticated. If the user isn't authenticated and tries to access the controller, OWIN initiates an authentication challenge and forces the user to authenticate. The preceding code looks at the list of claims for specific user attributes included in the user's ID token. These attributes include the user's full name and username, as well as the global user identifier subject. It also contains the *Tenant ID*, which represents the ID for the user's organization.
-
-## Create a view to display the user's claims
-
-In Visual Studio, create a new view to display the user's claims in a web page:
-
-1.	Right-click the **Views\Claims** folder, and then select **Add View**.
-2.	Name the new view **Index**.
-3.	Add the following HTML to the file:
-
-    ```html
-    <html>
-    <head>
-        <meta name="viewport" content="width=device-width" />
-        <title>Sign in with Microsoft Sample</title>
-        <link href="@Url.Content("~/Content/bootstrap.min.css")" rel="stylesheet" type="text/css" />
-    </head>
-    <body style="padding:50px">
-        <h3>Main Claims:</h3>
-        <table class="table table-striped table-bordered table-hover">
-            <tr><td>Name</td><td>@ViewBag.Name</td></tr>
-            <tr><td>Username</td><td>@ViewBag.Username</td></tr>
-            <tr><td>Subject</td><td>@ViewBag.Subject</td></tr>
-            <tr><td>TenantId</td><td>@ViewBag.TenantId</td></tr>
-        </table>
-        <br />
-        <h3>All Claims:</h3>
-        <table class="table table-striped table-bordered table-hover table-condensed">
-        @foreach (var claim in System.Security.Claims.ClaimsPrincipal.Current.Claims)
-        {
-            <tr><td>@claim.Type</td><td>@claim.Value</td></tr>
-        }
-        </table>
-        <br />
-        <br />
-        @Html.ActionLink("Sign out", "SignOut", "Home", null, new { @class = "btn btn-primary" })
-    </body>
-    </html>
-    ```
-
-## Register your application
-
-To register your application and add your application registration information to your solution, you have two options:
-
-### Option 1: Express mode
-
-To quickly register your application, follow these steps:
-
-1. Go to the new  [Azure portal - App registrations](https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/applicationsListBlade/quickStartType/AspNetWebAppQuickstartPage/sourceType/docs) pane.
-1. Enter a name for your application and select **Register**.
-1. Follow the instructions to download and automatically configure your new application in a single click.
-
-### Option 2: Advanced mode
-
-To register your application and add the app's registration information to your solution manually, follow these steps:
-
-1. Open Visual Studio, and then:
-   1. in Solution Explorer, select the project and view the Properties window (if you don't see a Properties window, press F4).
-   1. Change SSL Enabled to `True`.
-   1. Right-click the project in Visual Studio, select **Properties**, and then select the **Web** tab. In the **Servers** section, change the **Project Url** setting to the **SSL URL**.
-   1. Copy the SSL URL. You'll add this URL to the list of Redirect URLs in the Registration portal's list of Redirect URLs in the next step.<br/><br/>![Project properties](media/active-directory-develop-guidedsetup-aspnetwebapp-configure/vsprojectproperties.png)<br />
-1. Sign in to the [Azure portal](https://portal.azure.com) by using a work or school account, or by using a personal Microsoft account.
-1. If your account gives you access to more than one tenant, select your account in the upper-right corner, and set your portal session to the Azure AD tenant that you want.
-1. Go to the Microsoft identity platform for developers [App registrations](https://go.microsoft.com/fwlink/?linkid=2083908) page.
-1. Select **New registration**.
-1. When the **Register an application** page appears, enter your application's registration information:
-   1. In the **Name** section, enter a meaningful application name that will be displayed to users of the app, like **ASPNET-Tutorial**.
-   1. Add the SSL URL you copied from Visual Studio in step 1 (for example, `https://localhost:44368/`) in **Reply URL**, and select **Register**.
-1. Select the **Authentication** menu, select **ID tokens** under **Implicit Grant**, and then select **Save**.
-1. Add the following in the web.config file, located in the root folder in the `configuration\appSettings` section:
-
-    ```xml
-    <add key="ClientId" value="Enter_the_Application_Id_here" />
-    <add key="redirectUri" value="Enter_the_Redirect_URL_here" />
-    <add key="Tenant" value="common" />
-    <add key="Authority" value="https://login.microsoftonline.com/{0}/v2.0" />
-    ```
-
-1. Replace `ClientId` with the Application ID you just registered.
-1. Replace `redirectUri` with the SSL URL of your project.
+|Property |Value |
+|---|---|---|
+|**Instance** |Your b2c instance name | 
+|**ClientId** |Application ID of the application registered via [Azure portal - App registrations](https://portal.azure.com/#blade/Microsoft_AAD_B2CAdmin/TenantManagementMenuBlade/registeredApps) |
+|**Domain** |Domain name of your B2C tenant |
+|**SignedOutCallbackPath** |.... |
+|**SignUpSignInPolicyId** |Name of your SignupOrSignin user flow or custom policy|
+|**ResetPasswordPolicyId** |Name of your Password Reset user flow or custom policy|
+|**EditProfilePolicyId** |Name of your Profile Editing user flow or custom policy|
 
 ## Test your code
 
-To test your application in Visual Studio, press F5 to run your project. The browser opens to the http://<span></span>localhost:{port} location, and you see the **Sign in with Microsoft** button. Select the button to start the sign-in process.
+To test your application in Visual Studio Code, press Ctrl+F5 (without debugging) or F5 (with debugging) to run your project. By default, the browser opens to the https://<span></span>localhost:5001 location. 
 
-When you're ready to run your test, use an Azure AD account (work or school account) or a personal Microsoft account (<span>live.</span>com or <span>outlook.</span>com) to sign in.
+**Note:** If it opens to a port other than 5001, make sure the Redirect URI of the application registered via [Azure portal - App registrations](https://portal.azure.com/#blade/Microsoft_AAD_B2CAdmin/TenantManagementMenuBlade/registeredApps) is updated to that port number.
 
-![Sign in with Microsoft button shown on browser logon page in browser](media/active-directory-develop-guidedsetup-aspnetwebapp-test/aspnetbrowsersignin.png)
-<br/><br/>
-![Sign in to your Microsoft account](media/active-directory-develop-guidedsetup-aspnetwebapp-test/aspnetbrowsersignin2.png)
-
-#### Permissions and consent in the Microsoft identity platform endpoint
-
-Applications that integrate with Microsoft identity platform follow an authorization model that gives users and administrators control over how data can be accessed. After a user authenticates with Microsoft identity platform to access this application, they will be prompted to consent to the permissions requested by the application ("View your basic profile" and "Maintain access to data you have given it access to"). After accepting these permissions, the user will continue on to the application results. However, the user may instead be prompted with a **Need admin consent** page if either of the following occur:
-
-- The application developer adds any additional permissions that require **Admin consent**.
-- Or the tenant is configured (in **Enterprise Applications -> User Settings**) where users cannot consent to apps accessing company data on their behalf.
-
-For more information, refer to [Permissions and consent in the Microsoft identity platform endpoint](./v2-permissions-and-consent.md).
-
-### View application results
-
-After you sign in, the user is redirected to the home page of your website. The home page is the HTTPS URL that's specified in your application registration info in the Microsoft Application Registration Portal. The home page includes a *"Hello \<user>"* welcome message, a link to sign out, and a link to view the user's claims. The link for the user's claims connects to the Claims controller that you created earlier.
-
-### View the user's claims
-
-To view the user's claims, select the link to browse to the controller view that's available only to authenticated users.
-
-#### View the claims results
-
-After you browse to the controller view, you should see a table that contains the basic properties for the user:
-
-|Property |Value |Description |
-|---|---|---|
-|**Name** |User's full name | The user's first and last name
-|**Username** |user<span>@domain.com</span> | The username that's used to identify the user|
-|**Subject** |Subject |A string that uniquely identifies the user across the web|
-|**Tenant ID** |Guid | A **guid** that uniquely represents the user's Azure AD organization|
-
-Additionally, you should see a table of all claims that are in the authentication request. For more information, see the [list of claims that are in an ID token](./id-tokens.md).
-
-### Test access to a method that has an Authorize attribute (optional)
-
-To test access as an anonymous user to a controller that's protected by the `Authorize` attribute, follow these steps:
-
-1. Select the link to sign out the user, and complete the sign-out process.
-2. In your browser, type http://<span></span>localhost:{port}/claims to access your controller that's protected by the `Authorize` attribute.
-
-#### Expected results after access to a protected controller
-
-You're prompted to authenticate to use the protected controller view.
-
-## Advanced options
-
-### Protect your entire website
-
-To protect your entire website, in the **Global.asax** file, add the `AuthorizeAttribute` attribute to the `GlobalFilters` filter in the `Application_Start` method:
-
-```csharp
-GlobalFilters.Filters.Add(new AuthorizeAttribute());
-```
-
-### Restrict who can sign in to your application
-
-By default when you build the application created by this guide, your application will accept sign-ins of personal accounts (including outlook.com, live.com, and others) as well as work and school accounts from any company or organization that's integrated with Microsoft identity platform. This is a recommended option for SaaS applications.
-
-To restrict user sign-in access for your application, multiple options are available.
-
-#### Option 1: Restrict users from only one organization's Active Directory instance to sign in to your application (single-tenant)
-
-This option is frequently used for *LOB applications*: If you want your application to accept sign-ins only from accounts that belong to a specific Azure AD instance (including *guest accounts* of that instance), follow these steps:
-
-1. In the web.config file, change the value for the `Tenant` parameter from `Common` to the tenant name of the organization, such as `contoso.onmicrosoft.com`.
-2. In your [OWIN Startup class](#configure-the-authentication-pipeline), set the `ValidateIssuer` argument to `true`.
-
-#### Option 2: Restrict access to users in a specific list of organizations
-
-You can restrict sign-in access to only those user accounts that are in an Azure AD organization that's on the list of allowed organizations:
-1. In your [OWIN Startup class](#configure-the-authentication-pipeline), set the `ValidateIssuer` argument to `true`.
-2. Set the value of the `ValidIssuers` parameter to the list of allowed organizations.
-
-#### Option 3: Use a custom method to validate issuers
-
-You can implement a custom method to validate issuers by using the **IssuerValidator** parameter. For more information about how to use this parameter, see [TokenValidationParameters](/dotnet/api/microsoft.identitymodel.tokens.tokenvalidationparameters) class.
-
-[!INCLUDE [Help and support](../../../includes/active-directory-develop-help-support-include.md)]
+1. Click on sign-in link to get redirected to SignupOrSignin user flow.
+1. After successfull signup/signin, click on profile editing link to initiate profile editing user flow. Test by updating the display name via this user flow. This should change Hello *your_display_name!* on the home page of your web application. Make sure, your profile editing user flow or custom policy is configured to capture and return diplay name claim for this test to work as expected.
+1. Click on Reset Password link and test resetting your password via password reset user flow or custom policy.
 
 ## Next steps
 
