@@ -42,36 +42,37 @@ This sample shows how to build a .NET Core MVC Web app that uses OpenID Connect 
 
 ## Libraries
 
-This guide uses the following libraries:
+This sample uses Microsoft Identity Web Library, which is a set of ASP.NET Core libraries that simplifies adding authentication and authorization support to web apps and web APIs integrating with the Microsoft identity platform. It provides a single-surface API convenience layer that ties together ASP.NET Core, its authentication middleware, and the Microsoft Authentication Library (MSAL) for .NET. For logging-in purposes, it is sufficient to obtain an ID Token, and the middleware is capable of doing this on its own.
+
+**Note:** This sample does NOT use MSAL as it only signs-in users (it does not call a Web API). MSAL is used for fetching access for accessing protected APIs (not shown here), as well as ID tokens. 
 
 |Library|Description|
 |---|---|
-|[Microsoft.Owin.Security.OpenIdConnect](https://www.nuget.org/packages/Microsoft.Owin.Security.OpenIdConnect/)|Middleware that enables an application to use OpenIdConnect for authentication|
-|[Microsoft.Owin.Security.Cookies](https://www.nuget.org/packages/Microsoft.Owin.Security.Cookies)|Middleware that enables an application to maintain a user session by using cookies|
-|[Microsoft.Owin.Host.SystemWeb](https://www.nuget.org/packages/Microsoft.Owin.Host.SystemWeb)|Middleware that enables OWIN-based applications to run on Internet Information Services (IIS) by using the ASP.NET request pipeline|
+|[Microsoft.Identity.Web](https://www.nuget.org/packages/Microsoft.Identity.Web)|The main package. Required by all apps that use Microsoft Identity Web|
+|[Microsoft.Identity.Web.UI](https://www.nuget.org/packages/Microsoft.Identity.Web.UI)|Adds UI for user sign-in and sign-out and an associated controller for web apps|
 
 ## Set up your project
 
-This section describes how to install and configure the authentication pipeline through OWIN middleware on an ASP.NET project by using OpenID Connect.
+This section describes how to install and configure the authentication through Microsoft Identity Web Library on an ASP.NET Core project by using OpenID Connect.
 
 > Prefer to download this sample's Visual Studio project instead? [Download a project](https://github.com/AzureADQuickStarts/AppModelv2-WebApp-OpenIDConnect-DotNet/archive/master.zip) and skip to the [Register your application](#register-your-application) to configure the code sample before executing.
 
 ### Create your ASP.NET project
 
-1. In Visual Studio: Go to **File** > **New** > **Project**.
-2. Under **Visual C#\Web**, select **ASP.NET Web Application (.NET Framework)**.
-3. Name your application and select **OK**.
-4. Select **Empty**, and then select the check box to add **MVC** references.
+For ASP.NET Core 3.1, create the app by using WebApp template with the .NET CLI:
+1. Create a folder and rename it to your project name. E.g., C:\Demo\B2C-App
+2. Open elevated command prompt, navigate to the project folder and run below command:
+```dotnetcli
+dotnet new webapp
+```
 
 ## Add authentication components
 
-1. In Visual Studio: Go to **Tools** > **NuGet Package Manager** > **Package Manager Console**.
-2. Add *OWIN middleware NuGet packages* by typing the following in the Package Manager Console window:
+In order to add *Microsoft Identity Web ASP.NET Core middleware NuGet packages* run the following commands:
 
-    ```powershell
-    Install-Package Microsoft.Owin.Security.OpenIdConnect
-    Install-Package Microsoft.Owin.Security.Cookies
-    Install-Package Microsoft.Owin.Host.SystemWeb
+    ```dotnetcli
+    dotnet add package Microsoft.Identity.Web
+    dotnet add package Microsoft.Identity.Web.UI
     ```
 
 ### About these libraries
@@ -79,192 +80,109 @@ These libraries enable single sign-on (SSO) by using OpenID Connect through cook
 
 ## Configure the authentication pipeline
 
-The following steps are used to create an OWIN middleware Startup class to configure OpenID Connect authentication. This class is executed automatically when your IIS process starts.
+The following steps are used to create an Microsoft Identity Web ASP.NET Core middleware Startup class to configure OpenID Connect authentication. This class is executed automatically when your IIS process starts.
 
-> [!TIP]
-> If your project doesn't have a `Startup.cs` file in the root folder:
-> 1. Right-click the project's root folder, and then select **Add** > **New Item** > **OWIN Startup class**.<br/>
-> 2. Name it **Startup.cs**.
->
->> Make sure the class selected is an OWIN Startup class and not a standard C# class. Confirm this by verifying that you see [assembly: OwinStartup(typeof({NameSpace}.Startup))] above the namespace.
-
-1. Add *OWIN* and *Microsoft.IdentityModel* references to Startup.cs:
+1. Open Visual Studio Code. In addition to existing references, add below references to Startup.cs:
 
     ```csharp
-    using Microsoft.Owin;
-    using Owin;
-    using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-    using Microsoft.IdentityModel.Tokens;
-    using Microsoft.Owin.Security;
-    using Microsoft.Owin.Security.Cookies;
-    using Microsoft.Owin.Security.OpenIdConnect;
-    using Microsoft.Owin.Security.Notifications;
+    using Microsoft.AspNetCore.Http;
+    using Microsoft.AspNetCore.Authorization;
+    using Microsoft.AspNetCore.Mvc.Authorization;
+    using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+    using Microsoft.Identity.Web;
+    using Microsoft.Identity.Web.UI;
     ```
 
-2. Replace Startup class with the following code:
+2. In Startup.cs file, update the ConfigureServices method as mentioned below:
 
     ```csharp
-    public class Startup
-    {
-        // The Client ID is used by the application to uniquely identify itself to Microsoft identity platform.
-        string clientId = System.Configuration.ConfigurationManager.AppSettings["ClientId"];
-
-        // RedirectUri is the URL where the user will be redirected to after they sign in.
-        string redirectUri = System.Configuration.ConfigurationManager.AppSettings["RedirectUri"];
-
-        // Tenant is the tenant ID (e.g. contoso.onmicrosoft.com, or 'common' for multi-tenant)
-        static string tenant = System.Configuration.ConfigurationManager.AppSettings["Tenant"];
-
-        // Authority is the URL for authority, composed by Microsoft identity platform endpoint and the tenant name (e.g. https://login.microsoftonline.com/contoso.onmicrosoft.com/v2.0)
-        string authority = String.Format(System.Globalization.CultureInfo.InvariantCulture, System.Configuration.ConfigurationManager.AppSettings["Authority"], tenant);
-
-        /// <summary>
-        /// Configure OWIN to use OpenIdConnect
-        /// </summary>
-        /// <param name="app"></param>
-        public void Configuration(IAppBuilder app)
+        public void ConfigureServices(IServiceCollection services)
         {
-            app.SetDefaultSignInAsAuthenticationType(CookieAuthenticationDefaults.AuthenticationType);
+            services.Configure<CookiePolicyOptions>(options =>
+            {
+                // This lambda determines whether user consent for non-essential cookies is needed for a given request.
+                options.CheckConsentNeeded = context => true;
+                options.MinimumSameSitePolicy = SameSiteMode.Unspecified;
+                // Handling SameSite cookie according to https://docs.microsoft.com/en-us/aspnet/core/security/samesite?view=aspnetcore-3.1
+                options.HandleSameSiteCookieCompatibility();
+            });
 
-            app.UseCookieAuthentication(new CookieAuthenticationOptions());
-            app.UseOpenIdConnectAuthentication(
-                new OpenIdConnectAuthenticationOptions
-                {
-                    // Sets the ClientId, authority, RedirectUri as obtained from web.config
-                    ClientId = clientId,
-                    Authority = authority,
-                    RedirectUri = redirectUri,
-                    // PostLogoutRedirectUri is the page that users will be redirected to after sign-out. In this case, it is using the home page
-                    PostLogoutRedirectUri = redirectUri,
-                    Scope = OpenIdConnectScope.OpenIdProfile,
-                    // ResponseType is set to request the id_token - which contains basic information about the signed-in user
-                    ResponseType = OpenIdConnectResponseType.IdToken,
-                    // ValidateIssuer set to false to allow personal and work accounts from any organization to sign in to your application
-                    // To only allow users from a single organizations, set ValidateIssuer to true and 'tenant' setting in web.config to the tenant name
-                    // To allow users from only a list of specific organizations, set ValidateIssuer to true and use ValidIssuers parameter
-                    TokenValidationParameters = new TokenValidationParameters()
-                    {
-                        ValidateIssuer = false // This is a simplification
-                    },
-                    // OpenIdConnectAuthenticationNotifications configures OWIN to send notification of failed authentications to OnAuthenticationFailed method
-                    Notifications = new OpenIdConnectAuthenticationNotifications
-                    {
-                        AuthenticationFailed = OnAuthenticationFailed
-                    }
-                }
-            );
-        }
+            // Configuration to sign-in users with Azure AD B2C
+            services.AddMicrosoftIdentityWebAppAuthentication(Configuration, "AzureAdB2C");
 
-        /// <summary>
-        /// Handle failed authentication requests by redirecting the user to the home page with an error in the query string
-        /// </summary>
-        /// <param name="context"></param>
-        /// <returns></returns>
-        private Task OnAuthenticationFailed(AuthenticationFailedNotification<OpenIdConnectMessage, OpenIdConnectAuthenticationOptions> context)
-        {
-            context.HandleResponse();
-            context.Response.Redirect("/?errormessage=" + context.Exception.Message);
-            return Task.FromResult(0);
+            services.AddControllersWithViews()
+                    .AddMicrosoftIdentityUI();
+
+            //Configuring appsettings section AzureAdB2C, into IOptions
+            services.AddOptions();
+            services.Configure<OpenIdConnectOptions>(Configuration.GetSection("AzureAdB2C"));
+            services.AddRazorPages();
         }
-    }
     ```
 
-> [!NOTE]
-> Setting `ValidateIssuer = false` is a simplification for this quickstart. In real applications, you must validate the issuer.
-> See the samples to learn how to do that.
+3. Update the Configure method in Startup.cs file with app.UseCookiePolicy(); and app.UseAuthentication(); as mentioned below:
+
+    ```csharp
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        {
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
+            else
+            {
+                app.UseExceptionHandler("/Error");
+                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+                app.UseHsts();
+            }
+            app.UseHttpsRedirection();
+            app.UseStaticFiles();
+            app.UseCookiePolicy();
+            app.UseRouting();
+            app.UseAuthentication();
+            app.UseAuthorization();
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapRazorPages();
+            });
+        }
+    ```
 
 ### More information
 
-The parameters you provide in *OpenIDConnectAuthenticationOptions* serve as coordinates for the application to communicate with Microsoft identity platform. Because the OpenID Connect middleware uses cookies in the background, you must also set up cookie authentication as the preceding code shows. The *ValidateIssuer* value tells OpenIdConnect not to restrict access to one specific organization.
+The parameters you provide in *OpenIDConnectOptions* serve as coordinates for the application to communicate with Microsoft identity platform. Because the OpenID Connect middleware uses cookies in the background, you must also set up cookie authentication as the preceding code shows.
 
-## Add a controller to handle sign-in and sign-out requests
+## Account Controller to handle sign-in and sign-out requests
 
-To create a new controller to expose sign-in and sign-out methods, follow these steps:
+The [AccountController.cs](https://github.com/AzureAD/microsoft-identity-web/blob/master/src/Microsoft.Identity.Web.UI/Areas/MicrosoftIdentity/Controllers/AccountController.cs) used in this sample is part of Microsoft.Identity.Web.UI NuGet package, and you can find its implementation here. If you want to customize the Sign-in, Sign-up or Sign-out actions, you are encouraged to create your own controller.
 
-1.	Right-click the **Controllers** folder and select **Add** > **Controller**.
-2.	Select **MVC (.NET version) Controller – Empty**.
-3.	Select **Add**.
-4.	Name it **HomeController** and then select **Add**.
-5.	Add OWIN references to the class:
+## Add links to the app's home page for user sign-in and sign-out
 
-    ```csharp
-    using Microsoft.Owin.Security;
-    using Microsoft.Owin.Security.Cookies;
-    using Microsoft.Owin.Security.OpenIdConnect;
-    ```
+In Visual Studio Code, create a new file to add the sign-in/sign-out button and to display user information after authentication:
 
-6. Add the following two methods to handle sign-in and sign-out to your controller by initiating an authentication challenge:
-
-    ```csharp
-    /// <summary>
-    /// Send an OpenID Connect sign-in request.
-    /// Alternatively, you can just decorate the SignIn method with the [Authorize] attribute
-    /// </summary>
-    public void SignIn()
-    {
-        if (!Request.IsAuthenticated)
-        {
-            HttpContext.GetOwinContext().Authentication.Challenge(
-                new AuthenticationProperties{ RedirectUri = "/" },
-                OpenIdConnectAuthenticationDefaults.AuthenticationType);
-        }
-    }
-
-    /// <summary>
-    /// Send an OpenID Connect sign-out request.
-    /// </summary>
-    public void SignOut()
-    {
-        HttpContext.GetOwinContext().Authentication.SignOut(
-                OpenIdConnectAuthenticationDefaults.AuthenticationType,
-                CookieAuthenticationDefaults.AuthenticationType);
-    }
-    ```
-
-## Create the app's home page for user sign-in
-
-In Visual Studio, create a new view to add the sign-in button and to display user information after authentication:
-
-1.	Right-click the **Views\Home** folder and select **Add View**.
-2.	Name the new view **Index**.
-3.	Add the following HTML, which includes the sign-in button, to the file:
+1.	Right-click the **Pages\Shared** folder and select **New File**.
+2.	Name the new view **_LoginPartial.cshtml**.
+3.	Add the following HTML, which includes the sign-in/sign-out link, based on whether user is authenticated or not, to the file:
 
     ```html
-    <html>
-    <head>
-        <meta name="viewport" content="width=device-width" />
-        <title>Sign in with Microsoft Guide</title>
-    </head>
-    <body>
-    @if (!Request.IsAuthenticated)
-    {
-        <!-- If the user is not authenticated, display the sign-in button -->
-        <a href="@Url.Action("SignIn", "Home")" style="text-decoration: none;">
-            <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="300px" height="50px" viewBox="0 0 3278 522" class="SignInButton">
-            <style type="text/css">.fil0:hover {fill: #4B4B4B;} .fnt0 {font-size: 260px;font-family: 'Segoe UI Semibold', 'Segoe UI'; text-decoration: none;}</style>
-            <rect class="fil0" x="2" y="2" width="3174" height="517" fill="black" />
-            <rect x="150" y="129" width="122" height="122" fill="#F35325" />
-            <rect x="284" y="129" width="122" height="122" fill="#81BC06" />
-            <rect x="150" y="263" width="122" height="122" fill="#05A6F0" />
-            <rect x="284" y="263" width="122" height="122" fill="#FFBA08" />
-            <text x="470" y="357" fill="white" class="fnt0">Sign in with Microsoft</text>
-            </svg>
-        </a>
-    }
-    else
-    {
-        <span><br/>Hello @System.Security.Claims.ClaimsPrincipal.Current.FindFirst("name").Value;</span>
-        <br /><br />
-        @Html.ActionLink("See Your Claims", "Index", "Claims")
-        <br /><br />
-        @Html.ActionLink("Sign out", "SignOut", "Home")
-    }
-    @if (!string.IsNullOrWhiteSpace(Request.QueryString["errormessage"]))
-    {
-        <div style="background-color:red;color:white;font-weight: bold;">Error: @Request.QueryString["errormessage"]</div>
-    }
-    </body>
-    </html>
+        <ul class="navbar-nav">
+            @if (User.Identity.IsAuthenticated)
+            {
+                    <li class="nav-item">
+                        <span class="navbar-text text-dark">Hello @User.Identity.Name!</span>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" asp-area="MicrosoftIdentity" asp-controller="Account" asp-action="SignOut">Sign out</a>
+                    </li>
+            }
+            else
+            {
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" asp-area="MicrosoftIdentity" asp-controller="Account" asp-action="SignIn">Sign in</a>
+                    </li>
+            }
+         </ul>
     ```
 
 ### More information
