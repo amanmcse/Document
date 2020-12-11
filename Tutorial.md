@@ -63,7 +63,7 @@ For ASP.NET Core 3.1, create the app by using WebApp template with the .NET CLI:
 1. Create a folder and rename it to your project name. E.g., C:\Demo\B2C-App
 2. Open elevated command prompt, navigate to the project folder and run below command:
 ```dotnetcli
-dotnet new webapp
+    dotnet new webapp
 ```
 
 ## Add authentication components
@@ -279,6 +279,7 @@ To test your application in Visual Studio Code, press Ctrl+F5 (without debugging
 1. Click on sign-in link to get redirected to SignupOrSignin user flow.
 1. After successfull signup/signin, click on profile editing link to initiate profile editing user flow. Test by updating the display name via this user flow. This should change Hello *your_display_name!* on the home page of your web application. Make sure, your profile editing user flow or custom policy is configured to capture and return diplay name claim for this test to work as expected.
 1. Click on Reset Password link and test resetting your password via password reset user flow or custom policy.
+1. Click on Signout link to sign out of the application.
 
 ## Next steps
 
