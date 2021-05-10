@@ -219,26 +219,26 @@ To register your application, follow these steps:
 To add application registration information to your project, follow these steps:
 
 1. In Visual Studio Code, open the appsettings.json file.
-1. Add information about your Azure AD B2C instance, domain, application, user flows / custom policies etc. as shown below:
+1. Add information about your Azure AD tenant id, domain, application, etc. as shown below:
      ```json
-{
-  "AzureAd": {
-    "Instance": "https://login.microsoftonline.com/",
-    "Domain": "amansi.onmicrosoft.com",
-    "TenantId": "cda8bc2b-0ed0-4b90-8d52-c126c653f508",
-    "ClientId": "734229f5-1b52-466f-aa43-b94a15149bd2",
-    "CallbackPath": "/signin-oidc",
-    "SignedOutCallbackPath ": "/signout-callback-oidc"
-  },
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft": "Warning",
-      "Microsoft.Hosting.Lifetime": "Information"
+     {
+      "AzureAd": {
+        "Instance": "https://login.microsoftonline.com/",
+        "Domain": "amansi.onmicrosoft.com",
+        "TenantId": "cda8bc2b-0ed0-4b90-8d52-c126c653f508",
+        "ClientId": "734229f5-1b52-466f-aa43-b94a15149bd2",
+        "CallbackPath": "/signin-oidc",
+        "SignedOutCallbackPath ": "/signout-callback-oidc"
+      },
+      "Logging": {
+        "LogLevel": {
+          "Default": "Information",
+          "Microsoft": "Warning",
+          "Microsoft.Hosting.Lifetime": "Information"
+        }
+      },
+      "AllowedHosts": "*"
     }
-  },
-  "AllowedHosts": "*"
-}
     ```
 
 |Property |Value |
