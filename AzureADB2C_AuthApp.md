@@ -4,7 +4,6 @@ titleSuffix: Microsoft identity platform
 description: In this tutorial, you build an ASP.NET Core web application that uses the Microsoft identity platform for users to signup/signin, edit profile, reset password using Azure AD B2C.
 services: active-directory-b2c
 author: Aman
-manager: Yoel
 
 ms.service: active-directory-b2c
 ms.subservice: develop
